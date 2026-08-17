@@ -167,6 +167,8 @@ pxvdi_deb(){
 
   run_in_target pxvdistream install || true
   run_in_target systemctl enable pxvdistream || true
+  run_in_target apt-get clean
+  run_in_target rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb
 }
 
 pxvdi_config(){
