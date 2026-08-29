@@ -130,26 +130,16 @@ pxvdi_deb(){
   run_in_target apt-get update || errlog "apt update failed"
 
   # 公共 pxvdi 包
-  local _pxvdi_pkgs="pxvdi-thin-client pxvdistream freerdp3-x11 freerdp3-sdl freerdp3-wayland pxvdistreamclient pxvdi-theme"
+  local _pxvdi_pkgs="pxvdi-thin-client pxvdistream freerdp3-x11 freerdp3-sdl freerdp3-wayland pxvdi-theme moonlight-qt"
   # ISO 模式额外需要自定义内核和安装器
   if [ "$MODE" != "armbian" ]; then
     _pxvdi_pkgs="$_pxvdi_pkgs linux-image-6.6-pxvdi  pxvdi-boot-initramfs-tools pxvdi-installer"
   fi
-  DEBIAN_FRONTEND=noninteractive run_in_target apt-get install -y $_pxvdi_pkgs || errlog "apt install pxvdi failed"
 
   # rockchip 加速包
   if [ "$rockchip" == "true" ] || [[ "${ARMBIAN_LINUXFAMILY:-}" =~ ^(rockchip|rk35xx) ]]; then
     # 添加 rockchip 专用源
     echo "deb https://mirrors.lierfang.com/pxcloud/pxvdi/ $release rockchip" > $targetdir/etc/apt/sources.list.d/pxvdi-rockchip.list
-    run_in_target apt-get update || true
-
-    # 安装 Rockchip 适配的 xserver-xorg-core
-    DEBIAN_FRONTEND=noninteractive run_in_target apt-get install -y \
-        xserver-xorg-core || true
-
-    DEBIAN_FRONTEND=noninteractive run_in_target apt-get install -y \
-        gstreamer1.0-rockchip1 librga2 librockchip-mpp1 librockchip-vpu0 2>/dev/null \
-        || run_in_target apt-get install -y gstreamer-rockchip 2>/dev/null || true
 
     # 根据 board 从 JSON 映射表查找对应的 Mali GPU 驱动
     local _mali_pkg=""
@@ -159,11 +149,16 @@ pxvdi_deb(){
     fi
     if [ -n "$_mali_pkg" ]; then
       echo "[pxvdi] Installing Mali GPU driver: $_mali_pkg (board=$BOARD)"
-      DEBIAN_FRONTEND=noninteractive run_in_target apt-get install -y "$_mali_pkg" 2>/dev/null || true
+        _ pxvdi_pkgs="$_pxvdi_pkgs   $_mali_pkg pxvdistreamclient-rockchip librga2 librockchip-mpp1 librockchip-vpu0 "
     else
       echo "[pxvdi] No Mali driver mapping found for board=${BOARD:-unknown}, skipping"
     fi
+  else 
+    _pxvdi_pkgs="$_pxvdi_pkgs pxvdistreamclient"
   fi
+
+  run_in_target apt-get update || true
+  DEBIAN_FRONTEND=noninteractive run_in_target apt-get install -y $_pxvdi_pkgs || errlog "apt install pxvdi failed"
 
   run_in_target pxvdistream install || true
   run_in_target systemctl enable pxvdistream || true
@@ -276,7 +271,7 @@ check_env(){
 }
 
 grub_install(){
-  for module in $modules; do
+  for module in $modules; doq
     echo "$module" >> $targetdir/etc/initramfs-tools/modules
   done
   chroot $targetdir update-initramfs -kall -u || errlog "update initramfs failed"
@@ -298,7 +293,7 @@ grub_install(){
 
   if [ "$arch" = "amd64" ];then
     echo "create ia32 efi target efi file"
-    chroot $targetdir grub-mkimage -o /boot/efi/bootia32.efi -O i386-efi -p /EFI/BOOT/ \
+    chroot $targetdir grub-mkimage -o /boot/efi/BOOTIA32.EFI -O i386-efi -p /EFI/BOOT/ \
       boot linux chain normal configfile \
       part_gpt part_msdos fat iso9660 udf \
       test true keystatus loopback regexp probe \
@@ -364,7 +359,7 @@ create_iso_efi(){
 create_iso_x86(){
   cd $isopath
   echo "create iso.mbr"
-  dd if=$targetdir/usr/lib/grub/i386-pc/boot.img of=$isopath/boot/iso.mbr bs=512 count=1
+  dd if=$targetdir/usr/lib/grub/i386-pc/boot_hybrid.img of=$isopath/boot/iso.mbr bs=512 count=1
 
   # 生成 core.img（使用 i386-pc 格式）
   chroot $targetdir grub-mkimage -p /boot/grub -o /core.img -O i386-pc \
