@@ -271,7 +271,7 @@ check_env(){
 }
 
 grub_install(){
-  for module in $modules; doq
+  for module in $modules; do
     echo "$module" >> $targetdir/etc/initramfs-tools/modules
   done
   chroot $targetdir update-initramfs -kall -u || errlog "update initramfs failed"
