@@ -124,7 +124,7 @@ linux_firmware(){
 
 
 pxvdi_deb(){
-  curl -fL https://mirrors.lierfang.com/pxcloud/lierfang.gpg \
+  curl -fL --retry 5 --retry-delay 5 -A "Mozilla/5.0" https://mirrors.lierfang.com/pxcloud/lierfang.gpg \
       -o $targetdir/etc/apt/trusted.gpg.d/lierfang.gpg || errlog "fetch gpg failed"
   echo "deb https://mirrors.lierfang.com/pxcloud/pxvdi/ $release main" > $targetdir/etc/apt/sources.list.d/pxvdi.list
   run_in_target apt-get update || errlog "apt update failed"
