@@ -124,6 +124,9 @@ linux_firmware(){
 
 
 pxvdi_deb(){
+  # 诊断: 打印响应头, 排查 403 (不影响构建)
+  echo "[diag] default UA:"; curl -sSI -m 30 https://mirrors.lierfang.com/pxcloud/lierfang.gpg || true
+  echo "[diag] Mozilla UA:"; curl -sSI -m 30 -A "Mozilla/5.0" https://mirrors.lierfang.com/pxcloud/lierfang.gpg || true
   curl -fL --retry 5 --retry-delay 5 -A "Mozilla/5.0" https://mirrors.lierfang.com/pxcloud/lierfang.gpg \
       -o $targetdir/etc/apt/trusted.gpg.d/lierfang.gpg || errlog "fetch gpg failed"
   echo "deb https://mirrors.lierfang.com/pxcloud/pxvdi/ $release main" > $targetdir/etc/apt/sources.list.d/pxvdi.list
