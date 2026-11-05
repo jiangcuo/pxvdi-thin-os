@@ -158,7 +158,18 @@ pxvdi_deb(){
   run_in_target rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb
 }
 
+sysctl_config(){
+  mkdir -p "$targetdir/etc/sysctl.d"
+  cat > "$targetdir/etc/sysctl.d/99-pxvdi.conf" <<'EOF'
+net.core.rmem_max = 67108864
+net.core.rmem_default = 8388608
+net.core.wmem_max = 16777216
+net.core.netdev_max_backlog = 10000
+EOF
+}
+
 pxvdi_config(){
+  sysctl_config
   echo "pxvdi" > $targetdir/etc/hostname
   mkdir -p $targetdir/root/.lierfang/
   mkdir -p $targetdir/root/.config/pulse
@@ -390,7 +401,7 @@ create_iso_x86(){
     -e '/boot/grub/efi.img' \
     -no-emul-boot \
     -boot-load-size 16384 \
-    .
+    . || errlog "create iso failed"
 }
 
 ######################## 模式入口 ########################
